@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -35,7 +36,7 @@ public class WeatherService {
             + "&longitude=" + LON
             + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m"
             + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum"
-            + "&timezone=Europe%2FAmsterdam"
+            + "&timezone=Europe/Amsterdam"
             + "&forecast_days=1";
 
     private static final DateTimeFormatter NL_TIME =
@@ -61,7 +62,7 @@ public class WeatherService {
         log.info("Weer ophalen voor {}...", LOCATION_NAME);
 
         OpenMeteoResponse resp = restClient.get()
-                .uri(URL)
+                .uri(URI.create(URL))
                 .retrieve()
                 .body(OpenMeteoResponse.class);
 
