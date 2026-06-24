@@ -1,0 +1,46 @@
+name: Deploy naar Cloud Run
+
+# Draait bij elke push naar main, en handmatig via de Actions-tab.
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  SERVICE: weather-agent
+  REGION: europe-west4
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # Nodig voor keyless authenticatie (Workload Identity Federation).
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Code ophalen
+        uses: actions/checkout@v4
+
+      # Keyless inloggen bij Google Cloud — geen opgeslagen sleutels.
+      - name: Inloggen bij Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      # Bouwt de container (via de Dockerfile) en rolt uit naar Cloud Run.
+      - name: Deployen naar Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          source: .
+          flags: '--allow-unauthenticated'
+
+      - name: URL tonen
+        run: echo "Live op ${{ steps.deploy.outputs.url }}"

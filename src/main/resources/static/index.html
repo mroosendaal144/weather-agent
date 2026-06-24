@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Weeragent · Culemborg</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #11202b;
+            --muted: #4a5d6a;
+            --card: rgba(255, 255, 255, 0.55);
+            --line: rgba(17, 32, 43, 0.10);
+            --accent: #1f6f8b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            font-family: "Outfit", sans-serif;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: linear-gradient(135deg, #bfe3f0 0%, #d9ecf2 35%, #f3e9da 75%, #f7d9c4 100%);
+            background-size: 200% 200%;
+            animation: sky 24s ease-in-out infinite;
+        }
+
+        @keyframes sky {
+            0%, 100% { background-position: 0% 50%; }
+            50%      { background-position: 100% 50%; }
+        }
+
+        .card {
+            width: 100%;
+            max-width: 460px;
+            background: var(--card);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 28px;
+            padding: 34px 34px 26px;
+            box-shadow: 0 24px 60px -20px rgba(17, 32, 43, 0.35);
+            animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            background: rgba(31, 111, 139, 0.12);
+            padding: 5px 11px;
+            border-radius: 999px;
+            margin-bottom: 22px;
+        }
+
+        .place {
+            font-family: "Fraunces", serif;
+            font-weight: 500;
+            font-size: 30px;
+            line-height: 1;
+        }
+        .place small {
+            display: block;
+            font-family: "Outfit", sans-serif;
+            font-weight: 400;
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .hero {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 26px 0 6px;
+        }
+        .hero .emoji { font-size: 64px; line-height: 1; }
+        .hero .temp {
+            font-family: "Fraunces", serif;
+            font-weight: 300;
+            font-size: 76px;
+            line-height: 0.9;
+        }
+        .hero .temp sup { font-size: 30px; vertical-align: super; font-weight: 400; }
+
+        .desc { font-size: 18px; color: var(--muted); margin-bottom: 24px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--line);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .cell {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 14px 16px;
+        }
+        .cell .label {
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .cell .value {
+            font-family: "Fraunces", serif;
+            font-size: 22px;
+            font-weight: 500;
+            margin-top: 3px;
+        }
+
+        footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 22px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        button {
+            font-family: "Outfit", sans-serif;
+            font-size: 13px;
+            color: var(--accent);
+            background: transparent;
+            border: 1px solid rgba(31, 111, 139, 0.4);
+            border-radius: 999px;
+            padding: 7px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        button:hover { background: var(--accent); color: #fff; }
+        button:disabled { opacity: 0.5; cursor: default; }
+
+        .state { text-align: center; color: var(--muted); padding: 30px 0; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <span class="badge">Hello-world agent · actief</span>
+    <div id="content">
+        <div class="state">Weer wordt geladen…</div>
+    </div>
+</div>
+
+<script>
+    const fmt = (n) => Math.round(n);
+
+    async function load() {
+        const content = document.getElementById("content");
+        try {
+            const res = await fetch("/api/weather");
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const w = await res.json();
+            content.innerHTML = `
+                <div class="place">${w.location}
+                    <small>${w.description} · geobserveerd ${w.observedAt.replace("T", " ")}</small>
+                </div>
+                <div class="hero">
+                    <div class="emoji">${w.emoji}</div>
+                    <div class="temp">${fmt(w.temperature)}<sup>°C</sup></div>
+                </div>
+                <div class="grid">
+                    <div class="cell"><div class="label">Gevoel</div><div class="value">${fmt(w.apparentTemperature)}°C</div></div>
+                    <div class="cell"><div class="label">Wind</div><div class="value">${fmt(w.windSpeed)} km/u</div></div>
+                    <div class="cell"><div class="label">Min / Max</div><div class="value">${fmt(w.tempMin)}° / ${fmt(w.tempMax)}°</div></div>
+                    <div class="cell"><div class="label">Vochtigheid</div><div class="value">${w.humidity}%</div></div>
+                    <div class="cell"><div class="label">Neerslag</div><div class="value">${w.precipitation} mm</div></div>
+                    <div class="cell"><div class="label">Code (WMO)</div><div class="value">${w.weatherCode}</div></div>
+                </div>
+                <footer>
+                    <span>Opgehaald ${w.fetchedAt}</span>
+                    <button id="refresh">Ververs</button>
+                </footer>`;
+            document.getElementById("refresh").addEventListener("click", refresh);
+        } catch (e) {
+            content.innerHTML = `<div class="state">Kon het weer niet ophalen.<br/>${e.message}</div>`;
+        }
+    }
+
+    async function refresh() {
+        const btn = document.getElementById("refresh");
+        if (btn) { btn.disabled = true; btn.textContent = "Bezig…"; }
+        try { await fetch("/api/refresh", { method: "POST" }); } catch (e) {}
+        await load();
+    }
+
+    load();
+</script>
+</body>
+</html>
