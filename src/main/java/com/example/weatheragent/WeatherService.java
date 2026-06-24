@@ -1,6 +1,5 @@
 package com.example.weatheragent;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -10,6 +9,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * Haalt het actuele weer voor Culemborg op bij de gratis Open-Meteo API
@@ -24,7 +24,7 @@ public class WeatherService {
 
     private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
 
-    // Coördinaten van Culemborg, Nederland
+    // Coordinaten van Culemborg, Nederland
     private static final double LAT = 51.954;
     private static final double LON = 5.227;
     private static final String LOCATION_NAME = "Culemborg";
@@ -60,30 +60,30 @@ public class WeatherService {
     public synchronized WeatherData refresh() {
         log.info("Weer ophalen voor {}...", LOCATION_NAME);
 
-        JsonNode root = restClient.get()
+        OpenMeteoResponse resp = restClient.get()
                 .uri(URL)
                 .retrieve()
-                .body(JsonNode.class);
+                .body(OpenMeteoResponse.class);
 
-        if (root == null || root.path("current").isMissingNode()) {
+        if (resp == null || resp.current() == null) {
             throw new IllegalStateException("Onverwachte of lege respons van Open-Meteo");
         }
 
-        JsonNode current = root.path("current");
-        JsonNode daily = root.path("daily");
-        int code = current.path("weather_code").asInt();
+        OpenMeteoResponse.Current c = resp.current();
+        OpenMeteoResponse.Daily d = resp.daily();
+        int code = c.weatherCode();
 
         WeatherData data = new WeatherData(
                 LOCATION_NAME,
-                current.path("time").asText(),
+                c.time(),
                 ZonedDateTime.now(ZONE).format(NL_TIME),
-                current.path("temperature_2m").asDouble(),
-                current.path("apparent_temperature").asDouble(),
-                current.path("relative_humidity_2m").asInt(),
-                current.path("wind_speed_10m").asDouble(),
-                daily.path("temperature_2m_max").path(0).asDouble(),
-                daily.path("temperature_2m_min").path(0).asDouble(),
-                daily.path("precipitation_sum").path(0).asDouble(),
+                c.temperature(),
+                c.apparentTemperature(),
+                c.humidity(),
+                c.windSpeed(),
+                first(d == null ? null : d.tempMax()),
+                first(d == null ? null : d.tempMin()),
+                first(d == null ? null : d.precipitation()),
                 code,
                 describe(code),
                 emoji(code)
@@ -91,8 +91,13 @@ public class WeatherService {
 
         this.cached = data;
         this.cachedDate = LocalDate.now(ZONE);
-        log.info("Weer opgehaald: {} °C, {}", data.temperature(), data.description());
+        log.info("Weer opgehaald: {} graden C, {}", data.temperature(), data.description());
         return data;
+    }
+
+    /** Eerste waarde uit een dag-lijst, of 0 als die ontbreekt. */
+    private static double first(List<Double> values) {
+        return (values == null || values.isEmpty()) ? 0.0 : values.get(0);
     }
 
     /** Zet een WMO-weercode om naar een Nederlandse omschrijving. */
